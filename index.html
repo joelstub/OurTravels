@@ -365,11 +365,18 @@ function openForm({ title, fields, data = {}, onSave, onDelete }) {
 let map, countryLayer, pinLayer, features = [], mode = "pin", lastPopupClose = 0;
 
 async function initMap() {
-  map = L.map("map", { worldCopyJump: true, zoomControl: false, minZoom: 2 }).setView([35, 12], 2);
+  map = L.map("map", { worldCopyJump: true, zoomControl: false, minZoom: 2, maxZoom: 16 }).setView([35, 12], 2);
   L.control.zoom({ position: "bottomright" }).addTo(map);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
+  // Esri light gray basemap + English labels (labels sit above the colored countries)
+  const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
+  L.tileLayer(ESRI + "World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors", maxZoom: 16
+  }).addTo(map);
+  map.createPane("labels");
+  map.getPane("labels").style.zIndex = 450;
+  map.getPane("labels").style.pointerEvents = "none";
+  L.tileLayer(ESRI + "World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+    pane: "labels", maxZoom: 16
   }).addTo(map);
   countryLayer = L.geoJSON(null, { interactive: false, style: styleCountry }).addTo(map);
   pinLayer = L.layerGroup().addTo(map);
@@ -457,7 +464,7 @@ function renderPins() {
   S.pins.forEach(p => {
     L.circleMarker([p.lat, p.lng], {
       radius: 8, weight: 2.5, color: "#fff", fillColor: p.type === "been" ? BEEN : WANT,
-      fillOpacity: 1, bubblingMouseEvents: false
+      fillOpacity: 1, bubblingMouseEvents: false, pane: "markerPane"
     }).bindPopup(`<div class="pop"><b>${esc(p.name)}</b>
         <span class="badge ${p.type}">${p.type === "been" ? "Been there" : "Want to go"}</span>
         ${p.country ? `<div class="muted small" style="margin-top:5px">${esc(p.country)}</div>` : ""}
